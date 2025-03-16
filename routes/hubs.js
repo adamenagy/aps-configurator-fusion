@@ -1,5 +1,5 @@
 const express = require('express');
-const { authRefreshMiddleware, getHubs, getProjects, getProjectContents, getItemVersions } = require('../services/aps.js');
+const { authRefreshMiddleware, getHubs, getProjects, getProjectContents, getItemVersions, getVersionUrn } = require('../services/aps.js');
 
 let router = express.Router();
 
@@ -36,6 +36,15 @@ router.get('/api/hubs/:hub_id/projects/:project_id/contents/:item_id/versions', 
     try {
         const versions = await getItemVersions(req.params.project_id, req.params.item_id, req.internalOAuthToken.access_token);
         res.json(versions.map(version => ({ id: version.id, name: version.attributes.createTime })));
+    } catch (err) {
+        next(err);
+    }
+});
+
+router.get('/api/hubs/:hub_id/projects/:project_id/folders/:folder_id/files/:file_name', async function (req, res, next) {
+    try {
+        const versionUrn = await getVersionUrn(req.params.project_id, req.params.folder_id, req.params.file_name, req.internalOAuthToken.access_token);
+        res.json(versionUrn);
     } catch (err) {
         next(err);
     }

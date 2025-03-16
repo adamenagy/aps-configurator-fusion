@@ -112,7 +112,7 @@ service.runWorkItem = async (hubId, fileItemId, params) => {
             activityId: 'Fusion.ScriptJob+Latest',
             arguments: {
                 "PersonalAccessToken": "4e8419655f855fc1e6f23caa80186a0e109b5165",
-			    "TaskParameters": JSON.stringify(taskParams),
+                "TaskParameters": JSON.stringify(taskParams),
                 "TaskScript": script
             }
         })
@@ -141,4 +141,18 @@ service.getWorkItemStatus = async (workItemId) => {
     console.log(workItem);
 
     return workItem;
+}
+
+service.getVersionUrn = async (projectId, folderId, fileName, accessToken) => {
+    const files = await dataManagementClient.getFolderSearch(projectId, folderId, {
+        filterFieldName: 'displayName',
+        filterValue: [fileName],
+        accessToken
+    });
+
+    console.log(files);
+
+    if (files.data.length > 0) {
+        return files.data[0].id;
+    }
 }

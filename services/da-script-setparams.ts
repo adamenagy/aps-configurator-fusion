@@ -48,7 +48,7 @@ function run() {
   adsk.result = JSON.stringify({ 
     before: before, 
     after: after,
-    newDocName: newDocName, 
+    newFileName: newDocName, 
   });
 
   while (app.hasActiveJobs) {

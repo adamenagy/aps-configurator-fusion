@@ -7,13 +7,13 @@ async function getAccessToken(callback) {
         callback(access_token, expires_in);
     } catch (err) {
         alert('Could not obtain access token. See the console for more details.');
-        console.error(err);        
+        console.error(err);
     }
 }
 
 export function initViewer(container) {
-    return new Promise(function (resolve, reject) {
-            Autodesk.Viewing.Initializer({ env: 'AutodeskProduction', getAccessToken }, function () {
+    return new Promise(function(resolve, reject) {
+        Autodesk.Viewing.Initializer({ env: 'AutodeskProduction', getAccessToken }, function() {
             const config = {
                 extensions: ['Autodesk.DocumentBrowser']
             };
@@ -26,12 +26,21 @@ export function initViewer(container) {
 }
 
 export function loadModel(viewer, urn) {
-    function onDocumentLoadSuccess(doc) {
-        viewer.loadDocumentNode(doc, doc.getRoot().getDefaultGeometry());
-    }
-    function onDocumentLoadFailure(code, message) {
-        alert('Could not load model. See console for more details.');
-        console.error(message);
-    }
-    Autodesk.Viewing.Document.load('urn:' + urn, onDocumentLoadSuccess, onDocumentLoadFailure);
+    return new Promise((resolve, reject) => {
+        async function onDocumentLoadSuccess(doc) {
+            try {
+                const model = await viewer.loadDocumentNode(doc, doc.getRoot().getDefaultGeometry());
+                resolve(model);
+            } catch (err) {
+                reject(err);
+            }
+        }
+        function onDocumentLoadFailure(code, message) {
+            alert('Could not load model. See console for more details.');
+            console.error(message);
+            reject(new Error(message));
+        }
+        Autodesk.Viewing.Document.load('urn:' + urn, onDocumentLoadSuccess, onDocumentLoadFailure);
+    });
+
 }

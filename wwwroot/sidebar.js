@@ -41,7 +41,7 @@ async function getVersions(hubId, projectId, itemId) {
 export function initTree(selector, onSelectionChanged) {
     // See http://inspire-tree.com
     const tree = new InspireTree({
-        data: function (node) {
+        data: function(node) {
             if (!node || !node.id) {
                 return getHubs();
             } else {
@@ -56,12 +56,13 @@ export function initTree(selector, onSelectionChanged) {
             }
         }
     });
-    tree.on('node.click', function (event, node) {
+    tree.on('node.click', function(event, node) {
         event.preventTreeDefault();
         const tokens = node.id.split('|');
         if (tokens[0] === 'version') {
             const [_, hubId, projectId, itemId] = node.itree.parent.id.split('|');
-            onSelectionChanged(tokens[1], hubId, projectId, itemId, node.itree.parent.text);
+            const [_2, hubId2, projectId2, folderId] = node.itree.parent.itree.parent.id.split('|');
+            onSelectionChanged(tokens[1], hubId, projectId, folderId, itemId, node.itree.parent.text);
         }
     });
     return new InspireTreeDOM(tree, { target: selector });
