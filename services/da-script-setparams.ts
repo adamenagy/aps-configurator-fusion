@@ -27,6 +27,17 @@ function run() {
   // Read current design parameters
   const docParams: adsk.fusion.ParameterList = design.allParameters;
   const before = parametersToObject(docParams);
+
+  if (Object.keys(inputParams).length === 0) {
+    adsk.result = JSON.stringify({
+      before: before,
+    });
+
+    waitForFusion(app);
+    
+    return;
+  }
+
   for (let name in inputParams) {
     // Set parameters that are specified in the inputParams object,
     // and also exist in the design
@@ -38,6 +49,7 @@ function run() {
     }
     par.expression = inputParams[name];
   }
+
   const after = parametersToObject(docParams);
 
   const message = `Change parameters: [${Object.keys(inputParams).map(
@@ -45,15 +57,13 @@ function run() {
   )}]`;
   const newDocName = saveDocument(doc, message, folder, scriptParameters.fileSuffix);
 
-  adsk.result = JSON.stringify({ 
-    before: before, 
+  adsk.result = JSON.stringify({
+    before: before,
     after: after,
-    newFileName: newDocName, 
+    newFileName: newDocName,
   });
 
-  while (app.hasActiveJobs) {
-    wait(2000);
-  }
+  waitForFusion(app);
 }
 
 function getDmObjects(app: adsk.core.Application, hubId: string, fileURN: string) {
@@ -78,6 +88,12 @@ function parametersToObject(parameters: adsk.fusion.ParameterList) {
     out[parameters.item(i)!.name] = parameters.item(i)!.expression;
   }
   return out;
+}
+
+function waitForFusion(app) {
+  while (app.hasActiveJobs) {
+    wait(2000);
+  }
 }
 
 function wait(ms: number) {
@@ -116,7 +132,7 @@ function saveDocument(
         }
       }
     }
-
+ 
     return fileFound;
     */
     return newDocName;

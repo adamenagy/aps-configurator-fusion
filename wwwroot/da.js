@@ -1,6 +1,10 @@
 import { loadModel } from './viewer.js';
+import { getParamsPanel } from './paramsPanel.js';
 
 export async function initDA(fileVersionId, hubId, projectId, folderId, fileItemId, fileName, viewer) {
+  const paramsPanel = getParamsPanel(viewer);
+  paramsPanel.removeAllProperties();
+  
   console.log(fileName);
   console.log(fileVersionId);
   console.log(fileItemId);
@@ -31,7 +35,58 @@ export async function initDA(fileVersionId, hubId, projectId, folderId, fileItem
     }
   }
 
-  window.runWorkItem = async (_hubId, _fileItemId, _params) => {
+  window.startFetchParams = async (_hubId, _fileItemId) => {
+    _hubId = _hubId || hubId;
+    _fileItemId = _fileItemId || fileItemId;
+
+    const res = await fetch(`/api/da/${_hubId}/${_fileItemId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: "{}"
+    });
+    const workItem = await res.json();
+
+    checkFetchParamsStatus(workItem.id);
+  }
+
+  async function checkFetchParamsStatus(workItemId) {
+    const res = await fetch(`/api/da/${workItemId}`);
+
+    const workItem = await res.json();
+
+    if (workItem.status === 'pending' || workItem.status === 'inprogress') {
+      await wait(3000);
+      checkFetchParamsStatus(workItemId);
+      
+      return;
+    }
+
+    if (workItem.status === 'success') {
+      console.log('Fetching params completed successfully: ' + workItem.reportUrl);
+
+      const res = await fetch(workItem.reportUrl);
+      const report = await res.json();
+
+      console.log(report);
+
+      const result = JSON.parse(report.result);
+      console.log(result);
+
+      showParameters(paramsPanel, result.before);
+
+      return;
+    }
+
+    if (workItem.status.startsWith('failed')) {
+      console.log('Fetching params failed: ' + workItem.reportUrl);
+      
+      return;
+    }
+  }
+
+  window.startUpdate = async (_hubId, _fileItemId, _params) => {
     _hubId = _hubId || hubId;
     _fileItemId = _fileItemId || fileItemId;
 
@@ -44,22 +99,23 @@ export async function initDA(fileVersionId, hubId, projectId, folderId, fileItem
     });
     const workItem = await res.json();
 
-    checkWorkItemStatus(workItem.id);
+    checkUpdateStatus(workItem.id);
   }
 
-  async function checkWorkItemStatus(workItemId) {
+  async function checkUpdateStatus(workItemId) {
     const res = await fetch(`/api/da/${workItemId}`);
 
     const workItem = await res.json();
 
     if (workItem.status === 'pending' || workItem.status === 'inprogress') {
       await wait(3000);
-      checkWorkItemStatus(workItemId);
+      checkUpdateStatus(workItemId);
+      
       return;
     }
 
     if (workItem.status === 'success') {
-      console.log('Work item completed successfully: ' + workItem.reportUrl);
+      console.log('Updating params completed successfully: ' + workItem.reportUrl);
 
       const res = await fetch(workItem.reportUrl);
       const report = await res.json();
@@ -89,8 +145,29 @@ export async function initDA(fileVersionId, hubId, projectId, folderId, fileItem
     }
 
     if (workItem.status.startsWith('failed')) {
-      console.log('Work item failed: ' + workItem.reportUrl);
+      console.log('Updating params failed: ' + workItem.reportUrl);
+      
       return;
     }
+  }
+
+  window.startFetchParams(hubId, fileItemId);
+}
+
+function showParameters(paramsPanel, params) {
+  paramsPanel.removeAllProperties();
+
+  for (const key of Object.keys(params)) {
+    paramsPanel.addProperty(key, params[key]);
+  }
+
+  paramsPanel.setVisible(true);
+
+  paramsPanel.updateDesignButton.onclick = async () => {
+    console.log('Update design button clicked');
+
+    const params = paramsPanel.getProperties();
+
+    window.startUpdate(null, null, params);
   }
 }
