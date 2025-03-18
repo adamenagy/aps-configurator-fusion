@@ -2,7 +2,7 @@ async function getJSON(url) {
     const resp = await fetch(url);
     if (!resp.ok) {
         alert('Could not load tree data. See console for more details.');
-        console.error(await resp.text());
+        console.log(await resp.text());
         return [];
     }
     return resp.json();
