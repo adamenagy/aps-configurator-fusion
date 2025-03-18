@@ -46,5 +46,5 @@ try {
     login.style.visibility = 'visible';
 } catch (err) {
     alert('Could not initialize the application. See console for more details.');
-    console.error(err);
+    console.log(err);
 }
