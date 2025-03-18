@@ -1,7 +1,8 @@
-let paramsPanel = null;
+let _paramsPanel = null;
 
 class ParamsPanel extends Autodesk.Viewing.UI.PropertyPanel {
     updateDesignButton = null;
+    loader = null;
 
     constructor(viewer, container, id, title, options) {
         super(container, id, title, options);
@@ -13,14 +14,15 @@ class ParamsPanel extends Autodesk.Viewing.UI.PropertyPanel {
         this.footer.appendChild(this.updateDesignButton);
     }
 
-    getProperties() {
+    getProperties(originalProperties) {
         let result = {};
-        const properties = paramsPanel.container.getElementsByClassName('expanded property'); 
+        const properties = _paramsPanel.container.getElementsByClassName('expanded property'); 
         for (const property of properties) {
             const key = property.getElementsByClassName('property-name')[0].innerText;
             const value = property.getElementsByClassName('property-value')[0].innerText;
-            console.log(key, value);
-            result[key] = value;
+
+            if (originalProperties[key] !== value)
+                result[key] = value;
         }
         return result;
     }
@@ -44,14 +46,37 @@ class ParamsPanel extends Autodesk.Viewing.UI.PropertyPanel {
             target.innerHTML = editBox.value;
         }
     }
+
+    showLoader() {
+        if (this.loader) 
+            return;
+
+        this.loader = document.createElement('div');
+        this.loader.classList.add('loader');
+        this.container.appendChild(this.loader);
+    }
+
+    hideLoader() {
+        if (!this.loader) 
+            return;
+
+        this.container.removeChild(this.loader);
+        this.loader = null;
+    }
+
+    addProperties(params) {
+        for (const key of Object.keys(params)) {
+            const param = this.addProperty(key, params[key]);
+        }
+    }
 }
 
 export function getParamsPanel(viewer) {
-    if (paramsPanel) 
-        return paramsPanel;
+    if (_paramsPanel) 
+        return _paramsPanel;
 
-    paramsPanel = new ParamsPanel(viewer, viewer.container, 'paramsPanel', 'Parameters');
+    _paramsPanel = new ParamsPanel(viewer, viewer.container, 'paramsPanel', 'Parameters');
 
-    return paramsPanel;
+    return _paramsPanel;
 }
 
