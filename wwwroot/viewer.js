@@ -7,7 +7,7 @@ async function getAccessToken(callback) {
         callback(access_token, expires_in);
     } catch (err) {
         alert('Could not obtain access token. See the console for more details.');
-        console.error(err);
+        console.log(err);
     }
 }
 
@@ -37,7 +37,7 @@ export function loadModel(viewer, urn) {
         }
         function onDocumentLoadFailure(code, message) {
             alert('Could not load model. See console for more details.');
-            console.error(message);
+            console.log(message);
             reject(new Error(message));
         }
         Autodesk.Viewing.Document.load('urn:' + urn, onDocumentLoadSuccess, onDocumentLoadFailure);
