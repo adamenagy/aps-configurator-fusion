@@ -55,13 +55,18 @@ function run() {
   const message = `Change parameters: [${Object.keys(inputParams).map(
     (key) => `(${key}: ${before[key]} => ${after[key]})`,
   )}]`;
-  const newDocName = saveDocument(doc, message, folder, scriptParameters.fileSuffix);
+  const saveResult = saveDocument(app, doc, message, folder, scriptParameters.fileSuffix);
+  if (!saveResult) throw Error("Failed to save document.");
+  const [newDocVersionId, newFileName] = saveResult;
 
   adsk.result = JSON.stringify({
     before: before,
     after: after,
-    newFileName: newDocName,
+    newFileVersionId: newDocVersionId,
+    newFileName: newFileName,
   });
+
+  doc.close(false);
 
   waitForFusion(app);
 }
@@ -101,15 +106,37 @@ function wait(ms: number) {
   while (new Date().getTime() - start < ms) adsk.doEvents();
 }
 
+function waitUntil(condition: () => boolean, ms: number) {
+  const start = new Date().getTime(); 
+  while (new Date().getTime() - start < ms) {
+    adsk.doEvents();
+    if (condition()) return;
+  }
+  throw Error("Timeout"); 
+}
+
 function saveDocument(
+  app: adsk.core.Application,
   doc: adsk.core.Document,
   message: string,
   destinationFolder: adsk.core.DataFolder,
   fileSuffix: string,
-): string | null {
+): string[] | null {
   adsk.log("Saving as new document.");
 
   const newDocName = `${doc.dataFile.name}-${fileSuffix}`;
+  let newDocVersionId: string | null = null;
+
+  /*
+  const dataFileComplete = {
+    notify: (args: adsk.core.DataEventArgs) => {
+      adsk.log("Document uploaded");
+      adsk.log(args.file.versionId);
+      newDocVersionId = args.file.versionId;
+    },
+  };
+  app.dataFileComplete.add(dataFileComplete);
+*/
 
   if (
     doc.saveAs(
@@ -120,22 +147,19 @@ function saveDocument(
     )
   ) {
     adsk.log("Document saved successfully.");
-
+    
     /*
-    let fileFound: adsk.core.DataFile | null = null;
-    while (fileFound == null) {
-      for (const file of destinationFolder.dataFiles.asArray()) {
-        if (file.name === newDocName) {
-          adsk.log("Found the file: " + file.name);
-          fileFound = file;
-          break;
-        }
-      }
+    // Wait for the document upload
+    adsk.log("Waiting for document upload...");
+    try {
+      waitUntil(() => newDocVersionId !== null, 600000);
+    } catch (e) {
+      adsk.log("Document upload timeout.");
+      return null;
     }
- 
-    return fileFound;
-    */
-    return newDocName;
+      */
+
+    return [newDocVersionId!, newDocName];
   } else {
     adsk.log("Document failed to save.");
     return null;

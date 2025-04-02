@@ -98,7 +98,7 @@ service.runWorkItem = async (hubId, fileItemId, params) => {
         parameters: params,
     }
 
-    console.log(taskParams);
+    console.log(JSON.stringify(taskParams, null, 2));
 
     const script = fs.readFileSync('services/da-script-setparams.ts', 'utf8');
 
@@ -144,6 +144,28 @@ service.getWorkItemStatus = async (workItemId) => {
 }
 
 service.getVersionUrn = async (projectId, folderId, fileName, accessToken) => {
+    let pageNumber = null;
+    
+    while (true) {
+        const files = await dataManagementClient.getFolderContents(projectId, folderId, {
+            accessToken,
+            pageNumber,
+        });
+
+        for (let file of files.data) {
+            if (file.attributes.displayName === fileName) {
+                return file.relationships.tip.data.id;
+            }
+        } 
+        
+        if (!files.links.next)
+            return null;
+
+        pageNumber = new URL(files.links.next.href).searchParams.get('page[number]');
+    }
+}
+
+service.getVersionUrnSearch = async (projectId, folderId, fileName, accessToken) => {
     const files = await dataManagementClient.getFolderSearch(projectId, folderId, {
         filterFieldName: 'displayName',
         filterValue: [fileName],

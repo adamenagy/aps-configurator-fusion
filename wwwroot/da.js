@@ -1,10 +1,18 @@
 import { loadModel } from './viewer.js';
 import { getParamsPanel } from './paramsPanel.js';
 
+let _hubId = null;
+let _projectId = null;
+let _folderId = null;
+let _fileItemId = null;
+let _fileName = null;
+let _viewer = null;
+
 export async function initDA(fileVersionId, hubId, projectId, folderId, fileItemId, fileName, viewer) {
   const paramsPanel = getParamsPanel(viewer);
   paramsPanel.removeAllProperties();
-  
+  paramsPanel.setVisible(true);
+
   console.log(fileName);
   console.log(fileVersionId);
   console.log(fileItemId);
@@ -12,162 +20,179 @@ export async function initDA(fileVersionId, hubId, projectId, folderId, fileItem
   console.log(projectId);
   console.log(folderId);
 
-  function wait(ms) {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        resolve();
-      }, ms);
-    });
+  _hubId = hubId;
+  _projectId = projectId;
+  _folderId = folderId;
+  _fileItemId = fileItemId;
+  _fileName = fileName;
+  _viewer = viewer;
+
+  window.startFetchParams();
+}
+
+function wait(ms) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve();
+    }, ms);
+  });
+}
+
+window.getFilerUrn = async (fileName) => {
+  while (true) {
+    try {
+      const res = await fetch(`/api/hubs/${_hubId}/projects/${_projectId}/folders/${_folderId}/files/${fileName}`);
+
+      const fileUrn = await res.json();
+
+      return fileUrn;
+    } catch (err) {
+      console.log(`File "${fileName}" not available yet`);
+      await wait(1000);
+    }
+  }
+}
+
+window.startFetchParams = async () => {
+  getParamsPanel(_viewer).showLoader();
+
+  const res = await fetch(`/api/da/${_hubId}/${_fileItemId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: "{}"
+  });
+  const workItem = await res.json();
+
+  checkFetchParamsStatus(workItem.id);
+}
+
+async function checkFetchParamsStatus(workItemId) {
+  const res = await fetch(`/api/da/${workItemId}`);
+
+  const workItem = await res.json();
+
+  if (workItem.status === 'pending' || workItem.status === 'inprogress') {
+    await wait(3000);
+    checkFetchParamsStatus(workItemId);
+
+    return;
   }
 
-  window.getFilerUrn = async (_projectId, _folderId, _fileName) => {
+  if (workItem.status === 'success') {
+    console.log('Fetching params completed successfully: ' + workItem.reportUrl);
+
+    const res = await fetch(workItem.reportUrl);
+    const report = await res.json();
+
+    console.log(report);
+
+    const result = JSON.parse(report.result);
+    console.log(result);
+
+    showParameters(result.before);
+
+    getParamsPanel(_viewer).hideLoader();
+
+    return;
+  }
+
+  if (workItem.status.startsWith('failed')) {
+    console.log('Fetching params failed: ' + workItem.reportUrl);
+    getParamsPanel(_viewer).hideLoader();
+
+    return;
+  }
+}
+
+window.startUpdate = async (params) => {
+  getParamsPanel(_viewer).showLoader();
+
+  const res = await fetch(`/api/da/${_hubId}/${_fileItemId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(params)
+  });
+  const workItem = await res.json();
+
+  checkUpdateStatus(workItem.id);
+}
+
+async function checkUpdateStatus(workItemId) {
+  const res = await fetch(`/api/da/${workItemId}`);
+
+  const workItem = await res.json();
+
+  if (workItem.status === 'pending' || workItem.status === 'inprogress') {
+    await wait(3000);
+    checkUpdateStatus(workItemId);
+
+    return;
+  }
+
+  if (workItem.status === 'success') {
+    console.log('Updating params completed successfully: ' + workItem.reportUrl);
+
+    const res = await fetch(workItem.reportUrl);
+    const report = await res.json();
+
+    console.log(report);
+
+    const result = JSON.parse(report.result);
+    console.log(result);
+
+    const fileUrn = await window.getFilerUrn(result.newFileName);
+    //const fileUrn = result.newFileVersionId;
+    if (!fileUrn) {
+      console.log('Failed to get URN of new file: ' + workItem.reportUrl);
+      getParamsPanel(_viewer).hideLoader();
+      return;
+    }
+
+    const fileBase64Urn = window.btoa(fileUrn).replace(/=/g, '').replace(/\//g, '_');
+    console.log(fileUrn);
+    console.log(fileBase64Urn);
+
     while (true) {
       try {
-        const res = await fetch(`/api/hubs/${hubId}/projects/${_projectId}/folders/${_folderId}/files/${_fileName}`);
+        const model = await loadModel(_viewer, fileBase64Urn);
 
-        const fileUrn = await res.json();
+        console.log(model);
 
-        return fileUrn;
+        getParamsPanel(_viewer).hideLoader();
+
+        return;
       } catch (err) {
-        console.error(err);
+        console.log(err);
         await wait(1000);
       }
     }
   }
 
-  window.startFetchParams = async (_hubId, _fileItemId) => {
-    _hubId = _hubId || hubId;
-    _fileItemId = _fileItemId || fileItemId;
+  if (workItem.status.startsWith('failed')) {
+    console.log('Updating params failed: ' + workItem.reportUrl);
+    getParamsPanel(_viewer).hideLoader();
 
-    const res = await fetch(`/api/da/${_hubId}/${_fileItemId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: "{}"
-    });
-    const workItem = await res.json();
-
-    checkFetchParamsStatus(workItem.id);
+    return;
   }
-
-  async function checkFetchParamsStatus(workItemId) {
-    const res = await fetch(`/api/da/${workItemId}`);
-
-    const workItem = await res.json();
-
-    if (workItem.status === 'pending' || workItem.status === 'inprogress') {
-      await wait(3000);
-      checkFetchParamsStatus(workItemId);
-      
-      return;
-    }
-
-    if (workItem.status === 'success') {
-      console.log('Fetching params completed successfully: ' + workItem.reportUrl);
-
-      const res = await fetch(workItem.reportUrl);
-      const report = await res.json();
-
-      console.log(report);
-
-      const result = JSON.parse(report.result);
-      console.log(result);
-
-      showParameters(paramsPanel, result.before);
-
-      return;
-    }
-
-    if (workItem.status.startsWith('failed')) {
-      console.log('Fetching params failed: ' + workItem.reportUrl);
-      
-      return;
-    }
-  }
-
-  window.startUpdate = async (_hubId, _fileItemId, _params) => {
-    _hubId = _hubId || hubId;
-    _fileItemId = _fileItemId || fileItemId;
-
-    const res = await fetch(`/api/da/${_hubId}/${_fileItemId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(_params)
-    });
-    const workItem = await res.json();
-
-    checkUpdateStatus(workItem.id);
-  }
-
-  async function checkUpdateStatus(workItemId) {
-    const res = await fetch(`/api/da/${workItemId}`);
-
-    const workItem = await res.json();
-
-    if (workItem.status === 'pending' || workItem.status === 'inprogress') {
-      await wait(3000);
-      checkUpdateStatus(workItemId);
-      
-      return;
-    }
-
-    if (workItem.status === 'success') {
-      console.log('Updating params completed successfully: ' + workItem.reportUrl);
-
-      const res = await fetch(workItem.reportUrl);
-      const report = await res.json();
-
-      console.log(report);
-
-      const result = JSON.parse(report.result);
-      console.log(result);
-
-      const fileUrn = await window.getFilerUrn(projectId, folderId, result.newFileName);
-      const fileBase64Urn = window.btoa(fileUrn).replace(/=/g, '').replace(/\//g, '_');
-      console.log(fileUrn);
-      console.log(fileBase64Urn);
-
-      while (true) {
-        try {
-          const model = await loadModel(viewer, fileBase64Urn);
-
-          console.log(model);
-
-          return;
-        } catch (err) {
-          console.error(err);
-          await wait(1000);
-        }
-      }
-    }
-
-    if (workItem.status.startsWith('failed')) {
-      console.log('Updating params failed: ' + workItem.reportUrl);
-      
-      return;
-    }
-  }
-
-  window.startFetchParams(hubId, fileItemId);
 }
 
-function showParameters(paramsPanel, params) {
+function showParameters(params) {
+  const paramsPanel = getParamsPanel(_viewer);
   paramsPanel.removeAllProperties();
 
-  for (const key of Object.keys(params)) {
-    paramsPanel.addProperty(key, params[key]);
-  }
+  paramsPanel.addProperties(params);
 
   paramsPanel.setVisible(true);
 
   paramsPanel.updateDesignButton.onclick = async () => {
     console.log('Update design button clicked');
 
-    const params = paramsPanel.getProperties();
+    const modifiedParams = paramsPanel.getProperties(params);
 
-    window.startUpdate(null, null, params);
+    window.startUpdate(modifiedParams);
   }
 }
