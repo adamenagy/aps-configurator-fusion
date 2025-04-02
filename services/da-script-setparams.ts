@@ -33,6 +33,8 @@ function run() {
       before: before,
     });
 
+    doc.close(false);
+
     waitForFusion(app);
     
     return;
