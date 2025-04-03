@@ -9,7 +9,7 @@ For this operation the [Design Automation for Fusion](https://aps.autodesk.com/e
 
 In order to use that component you need to generate a **Personal Access Token** (PAT) on [https://profile.autodesk.com/Security](https://profile.autodesk.com/Security) for **Design Automation for Fusion** and provide that in the input box. 
 
-![]()
+![Personal Access Token creation](./images/PAT%20creation.drawio.png)
 
 ## Troubleshooting
 
