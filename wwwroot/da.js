@@ -61,7 +61,10 @@ window.startFetchParams = async () => {
     headers: {
       'Content-Type': 'application/json'
     },
-    body: "{}"
+    body: JSON.stringify({
+      params: {},
+      pat: document.getElementById('pat').value
+    })
   });
   const workItem = await res.json();
 
@@ -114,7 +117,10 @@ window.startUpdate = async (params) => {
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(params)
+    body: JSON.stringify({
+      params,
+      pat: document.getElementById('pat').value
+    })
   });
   const workItem = await res.json();
 

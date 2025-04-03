@@ -8,7 +8,7 @@ router.use(bodyParser.json());
 
 router.post('/api/da/:hubId/:fileItemId', async function (req, res, next) {
     try {
-        const workItem = await runWorkItem(req.params.hubId, req.params.fileItemId, req.body);
+        const workItem = await runWorkItem(req.params.hubId, req.params.fileItemId, req.body.params, req.body.pat);
         res.json(workItem);
     } catch (err) {
         next(err);

@@ -88,7 +88,7 @@ service.getItemVersions = async (projectId, itemId, accessToken) => {
     return resp.data;
 };
 
-service.runWorkItem = async (hubId, fileItemId, params) => {
+service.runWorkItem = async (hubId, fileItemId, params, pat) => {
     const token = await authenticationClient.getTwoLeggedToken(APS_CLIENT_ID, APS_CLIENT_SECRET, INTERNAL_TOKEN_SCOPES);
 
     let taskParams = {
@@ -111,7 +111,7 @@ service.runWorkItem = async (hubId, fileItemId, params) => {
         body: JSON.stringify({
             activityId: 'Fusion.ScriptJob+Latest',
             arguments: {
-                "PersonalAccessToken": "4e8419655f855fc1e6f23caa80186a0e109b5165",
+                "PersonalAccessToken": pat,
                 "TaskParameters": JSON.stringify(taskParams),
                 "TaskScript": script
             }
