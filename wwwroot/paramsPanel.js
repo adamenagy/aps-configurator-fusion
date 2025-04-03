@@ -69,6 +69,16 @@ class ParamsPanel extends Autodesk.Viewing.UI.PropertyPanel {
             const param = this.addProperty(key, params[key]);
         }
     }
+
+    showError(htmlContent) {
+        this.removeAllProperties();
+
+        const errorDiv = document.createElement('div');
+        errorDiv.innerHTML = htmlContent;
+        errorDiv.classList.add('error');
+
+        document.getElementsByClassName('treeview')[0].appendChild(errorDiv);
+    }   
 }
 
 export function getParamsPanel(viewer) {

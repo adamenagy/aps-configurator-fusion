@@ -103,6 +103,9 @@ async function checkFetchParamsStatus(workItemId) {
 
   if (workItem.status.startsWith('failed')) {
     console.log('Fetching params failed: ' + workItem.reportUrl);
+    const report = await fetch(workItem.reportUrl);
+    const reportJson = await report.json();
+    showError(`Fetching params failed: <br /><pre class="prettyprint">${JSON.stringify(reportJson, null, 2)}</pre>`);
     getParamsPanel(_viewer).hideLoader();
 
     return;
@@ -154,6 +157,10 @@ async function checkUpdateStatus(workItemId) {
     //const fileUrn = result.newFileVersionId;
     if (!fileUrn) {
       console.log('Failed to get URN of new file: ' + workItem.reportUrl);
+      const report = await fetch(workItem.reportUrl);
+      const reportJson = await report.json();
+      showError(`Updating params failed: <br /><pre class="prettyprint">${JSON.stringify(reportJson, null, 2)}</pre>`);
+      
       getParamsPanel(_viewer).hideLoader();
       return;
     }
@@ -201,4 +208,13 @@ function showParameters(params) {
 
     window.startUpdate(modifiedParams);
   }
+}
+
+function showError(htmlContent) {
+  const paramsPanel = getParamsPanel(_viewer);
+  paramsPanel.removeAllProperties();
+
+  paramsPanel.showError(htmlContent);
+
+  paramsPanel.setVisible(true);
 }
