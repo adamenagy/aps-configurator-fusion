@@ -1,6 +1,6 @@
 const { AuthenticationClient, ResponseType } = require('@aps_sdk/authentication');
 const { DataManagementClient } = require('@aps_sdk/data-management');
-const { APS_CLIENT_ID, APS_CLIENT_SECRET, APS_CALLBACK_URL, INTERNAL_TOKEN_SCOPES, PUBLIC_TOKEN_SCOPES } = require('../config.js');
+const { APS_CLIENT_ID, APS_CLIENT_SECRET, APS_CALLBACK_URL, APS_ACTIVITY, APS_SIGNED_ACTIVITY, INTERNAL_TOKEN_SCOPES, PUBLIC_TOKEN_SCOPES } = require('../config.js');
 
 const authenticationClient = new AuthenticationClient();
 const dataManagementClient = new DataManagementClient();
@@ -88,8 +88,8 @@ service.getItemVersions = async (projectId, itemId, accessToken) => {
     return resp.data;
 };
 
-service.runWorkItem = async (hubId, fileItemId, params, pat) => {
-    const token = await authenticationClient.getTwoLeggedToken(APS_CLIENT_ID, APS_CLIENT_SECRET, INTERNAL_TOKEN_SCOPES);
+service.runWorkItem = async (hubId, fileItemId, params, pat, accessToken) => {
+    //const token = await authenticationClient.getTwoLeggedToken(APS_CLIENT_ID, APS_CLIENT_SECRET, INTERNAL_TOKEN_SCOPES);
 
     let taskParams = {
         fileURN: fileItemId,
@@ -102,20 +102,26 @@ service.runWorkItem = async (hubId, fileItemId, params, pat) => {
 
     const script = fs.readFileSync('services/da-script-setparams.ts', 'utf8');
 
+    const body = JSON.stringify({
+        activityId: APS_ACTIVITY,
+        signatures: {
+            activityId: APS_SIGNED_ACTIVITY,
+        },
+        arguments: {
+            "PersonalAccessToken": pat,
+            "TaskParameters": JSON.stringify(taskParams),
+            "TaskScript": script
+        }
+    });
+    console.log(body);
+
     const resp = await fetch('https://developer.api.autodesk.com/da/us-east/v3/workitems', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token.access_token}`
+            'Authorization': `Bearer ${accessToken}`
         },
-        body: JSON.stringify({
-            activityId: 'Fusion.ScriptJob+Latest',
-            arguments: {
-                "PersonalAccessToken": pat,
-                "TaskParameters": JSON.stringify(taskParams),
-                "TaskScript": script
-            }
-        })
+        body 
     });
 
     const workItem = await resp.json();
@@ -125,14 +131,14 @@ service.runWorkItem = async (hubId, fileItemId, params, pat) => {
     return workItem;
 }
 
-service.getWorkItemStatus = async (workItemId) => {
-    const token = await authenticationClient.getTwoLeggedToken(APS_CLIENT_ID, APS_CLIENT_SECRET, INTERNAL_TOKEN_SCOPES);
+service.getWorkItemStatus = async (workItemId, accessToken) => {
+    //const token = await authenticationClient.getTwoLeggedToken(APS_CLIENT_ID, APS_CLIENT_SECRET, INTERNAL_TOKEN_SCOPES);
 
     const resp = await fetch(`https://developer.api.autodesk.com/da/us-east/v3/workitems/${workItemId}`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token.access_token}`
+            'Authorization': `Bearer ${accessToken}`
         }
     });
 
