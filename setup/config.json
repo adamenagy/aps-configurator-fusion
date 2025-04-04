@@ -5,7 +5,6 @@
     "scope": "code:all data:read data:write bucket:create bucket:read bucket:update bucket:delete"
   },
   "nickname": "<client id>",
-  "bucketName": "<bucket name>",
   "activity": {
     "id": "ScriptJob",
     "description": "Activity to run Scripts",
