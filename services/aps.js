@@ -34,18 +34,28 @@ service.authRefreshMiddleware = async (req, res, next) => {
     }
 
     if (expires_at < Date.now()) {
-        const internalCredentials = await authenticationClient.refreshToken(refresh_token, APS_CLIENT_ID, {
-            clientSecret: APS_CLIENT_SECRET,
-            scopes: INTERNAL_TOKEN_SCOPES
-        });
-        const publicCredentials = await authenticationClient.refreshToken(internalCredentials.refresh_token, APS_CLIENT_ID, {
-            clientSecret: APS_CLIENT_SECRET,
-            scopes: PUBLIC_TOKEN_SCOPES
-        });
-        req.session.public_token = publicCredentials.access_token;
-        req.session.internal_token = internalCredentials.access_token;
-        req.session.refresh_token = publicCredentials.refresh_token;
-        req.session.expires_at = Date.now() + internalCredentials.expires_in * 1000;
+        try {
+            const internalCredentials = await authenticationClient.refreshToken(refresh_token, APS_CLIENT_ID, {
+                clientSecret: APS_CLIENT_SECRET,
+                scopes: INTERNAL_TOKEN_SCOPES
+            });
+            const publicCredentials = await authenticationClient.refreshToken(internalCredentials.refresh_token, APS_CLIENT_ID, {
+                clientSecret: APS_CLIENT_SECRET,
+                scopes: PUBLIC_TOKEN_SCOPES
+            });
+            req.session.public_token = publicCredentials.access_token;
+            req.session.internal_token = internalCredentials.access_token;
+            req.session.refresh_token = publicCredentials.refresh_token;
+            req.session.expires_at = Date.now() + internalCredentials.expires_in * 1000;
+        } catch (err) {
+            console.error('Error refreshing token:', err);
+            req.session.public_token = null;
+            req.session.internal_token = null;
+            req.session.refresh_token = null;
+            req.session.expires_at = null;
+            res.status(401).end();
+            return;
+        }
     }
     req.internalOAuthToken = {
         access_token: req.session.internal_token,
