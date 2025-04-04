@@ -77,7 +77,7 @@ class ParamsPanel extends Autodesk.Viewing.UI.PropertyPanel {
         errorDiv.innerHTML = htmlContent;
         errorDiv.classList.add('error');
 
-        document.getElementsByClassName('treeview')[0].appendChild(errorDiv);
+        this.container.getElementsByClassName('treeview')[0].appendChild(errorDiv);
     }   
 }
 

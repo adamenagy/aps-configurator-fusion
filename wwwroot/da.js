@@ -68,6 +68,14 @@ window.startFetchParams = async () => {
   });
   const workItem = await res.json();
 
+  if (!workItem.id) {
+    console.log('Starting work item failed');
+    showError(`Fetching params failed: <br /><pre class="prettyprint">${JSON.stringify(workItem, null, 2)}</pre>`);
+    getParamsPanel(_viewer).hideLoader();
+
+    return;
+  }
+
   checkFetchParamsStatus(workItem.id);
 }
 
@@ -126,6 +134,14 @@ window.startUpdate = async (params) => {
     })
   });
   const workItem = await res.json();
+
+  if (!workItem.id) {
+    console.log('Starting work item failed');
+    showError(`Updating params failed: <br /><pre class="prettyprint">${JSON.stringify(workItem, null, 2)}</pre>`);
+    getParamsPanel(_viewer).hideLoader();
+    
+    return;
+  }
 
   checkUpdateStatus(workItem.id);
 }
